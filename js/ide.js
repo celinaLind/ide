@@ -65,6 +65,7 @@ var layoutConfig = {
             }
         }, {
             type: "column",
+            width: 34,
             content: [{
                 type: "component",
                 componentName: "stdin",
@@ -83,6 +84,13 @@ var layoutConfig = {
                 componentState: {
                     readOnly: true
                 }
+            }, {
+                type: "component",
+                height: 40,
+                componentName: "assistant",
+                id: "assistant",
+                title: "AI Assistant",
+                isClosable: false
             }]
         }]
     }]
@@ -581,6 +589,10 @@ document.addEventListener("DOMContentLoaded", async function () {
                     enabled: false
                 }
             });
+        });
+
+        layout.registerComponent("assistant", function(container, state) {
+            new AssistantChat(container);
         });
 
         layout.on("initialised", function () {
