@@ -1,7 +1,13 @@
+import { config } from './config.js'
+
+
 class AssistantChat {
     constructor(container) {
         this.container = container;
         this.messages = [];
+        // Get references to global elements
+        this.sourceEditor = window.sourceEditor;
+        this.$selectLanguage = window.$selectLanguage;
         this.initializeUI();
     }
 
@@ -10,6 +16,13 @@ class AssistantChat {
         const chatContainer = document.createElement('div');
         chatContainer.className = 'assistant-chat';
         chatContainer.innerHTML = `
+            <div class="choose-model">
+                <select class="model-select">
+                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                    <option value="gpt-4">GPT-4</option>
+                    <option value="claude-2">Claude 2</option>
+                </select>
+            </div>
             <div class="chat-messages"></div>
             <div class="chat-input-container">
                 <textarea class="chat-input" placeholder="Ask me anything about your code..."></textarea>
@@ -44,15 +57,18 @@ class AssistantChat {
         this.inputEl.value = '';
 
         // Get current editor content
-        const sourceCode = sourceEditor.getValue();
-        const language = $selectLanguage.find(':selected').text();
+        const sourceCode = this.sourceEditor.getValue();
+        const language = this.$selectLanguage.find(':selected').text();
+        // Get selected model
+        const modelSelect = document.querySelector('.model-select').value;
 
         try {
             // Send to AI API
             const response = await this.callAIAPI({
                 messages: [...this.messages, { role: 'user', content: message }],
                 sourceCode,
-                language
+                language,
+                modelSelect
             });
 
             // Add AI response to chat
@@ -78,27 +94,58 @@ class AssistantChat {
     }
 
     formatMessage(content) {
-        // Add markdown formatting if needed
-        return content;
+        // Basic markdown-like formatting
+        return content
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+            .replace(/`([^`]+)`/g, '<code>$1</code>')
+            .replace(/\n/g, '<br>');
     }
 
     async callAIAPI(data) {
-        // Implement your AI API call here
-        // This is a placeholder - replace with your actual API endpoint
-        const response = await fetch('YOUR_AI_API_ENDPOINT', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer YOUR_API_KEY'
-            },
-            body: JSON.stringify(data)
-        });
+        const systemMessage = {
+            role: "system",
+            content: `You are a helpful programming assistant and teacher. You have access to the following ${data.language} code:
+            
+            ${data.sourceCode}
+            
+            Instructions for formatting your responses:
+            - Use markdown formatting
+            - Always wrap code snippets in triple backticks with the language specified
+            - Use bullet points for lists
+            - Use headings where appropriate
+            - Format inline code with single backticks
+            
+            Your responses should be friendly and helpful.
+            `
+        };
 
-        if (!response.ok) {
-            throw new Error('AI API request failed');
+        const messages = [
+            systemMessage,
+            ...data.messages
+        ];
+
+        try {
+            fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${config.OPENROUTER_API_KEY}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  model: data.modelSelect,
+                  messages: messages,
+                }),
+              });
+            
+
+            return completion.choices[0].message.content;
+        } catch (error) {
+            console.error('API call failed:', error);
+            throw error;
         }
-
-        const result = await response.json();
-        return result.message;
     }
 } 
+
+export {AssistantChat}
