@@ -69,6 +69,17 @@ var layoutConfig = {
           },
         },
         {
+            type: "component",
+            width: 40,
+            componentName: "assistant",
+            id: "assistant",
+            title: "AI Assistant",
+            isClosable: false,
+            componentState: {
+              readOnly: false,
+            },
+        },
+        {
           type: "column",
           width: 34,
           content: [
@@ -90,17 +101,6 @@ var layoutConfig = {
               isClosable: false,
               componentState: {
                 readOnly: true,
-              },
-            },
-            {
-              type: "component",
-              height: 40,
-              componentName: "assistant",
-              id: "assistant",
-              title: "AI Assistant",
-              isClosable: false,
-              componentState: {
-                readOnly: false,
               },
             },
           ],
