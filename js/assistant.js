@@ -1,42 +1,65 @@
-import { config } from './config.js'
-
-
-class AssistantChat {
+export class AssistantChat {
     constructor(container) {
         this.container = container;
         this.messages = [];
         this.initializeUI();
+        this.loadStoredValues();
     }
 
     initializeUI() {
         // Create chat container
         const chatContainer = document.createElement('div');
         chatContainer.className = 'assistant-chat';
-        // TODO: 1. Style model options and api key input
         chatContainer.innerHTML = `
-            <div class="choose-model">
-                <p><b>Choose Model:</b></p>
-                <select class="model-select">
-                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                    <option value="gpt-4">GPT-4</option>
-                    <option value="claude-2">Claude 2</option>
-                    <option value="openai/o3-mini-high">Open AI: o3 Mini High</option>
-                    <option value="deepseek/deepseek-chat:free">Deepseek V3</option>
-                </select>
-            </div>
-            <div class='api-key'>
-                <input id="api-key" type="text" placeholder="Enter Key"></input>
-                <button class="save-key">Save</button>
-            </div>
+            <div class="assistant-components">
+                 <div class="choose-model">
+                     <p><b>Choose Model:</b></p>
+                     <select class="model-select">
+                         <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                         <option value="gpt-4">GPT-4</option>
+                         <option value="claude-2">Claude 2</option>
+                         <option value="openai/o3-mini-high">Open AI: o3 Mini High</option>
+                         <option value="deepseek/deepseek-chat:free">Deepseek V3</option>
+                     </select>
+                 </div>
+                <p><b>OpenRouter API Key:</b></p>
+                 <div class='api-key'>
+                     <input id="api-key" type="password" placeholder="Enter Key"></input>
+                     <button class="save-key">Save</button>
+                 </div>
+             </div>
             <div class="chat-messages"></div>
             <div class="chat-input-container">
                 <textarea class="chat-input" placeholder="Ask me anything about your code..."></textarea>
                 <button class="chat-send-btn">Send</button>
             </div>
         `;
-        
+
+        // TODO: ADD tab feature for assistant component
+        // <!-- Tab links -->
+        // <div class="tab">
+        //   <button class="tablinks" onclick="openComponent(event, 'chooseModel')">Choose Model</button>
+        //   <button class="tablinks" onclick="openComponent(event, 'apiKey')">Add API Key</button>
+        // </div>
+
+        // <!-- Tab content -->
+        // <div id="chooseModel" class="tabcontent">
+        //   <p><b>Choose Model:</b></p>
+        //   <select class="model-select">
+        //       <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+        //       <option value="gpt-4">GPT-4</option>
+        //       <option value="claude-2">Claude 2</option>
+        //       <option value="openai/o3-mini-high">Open AI: o3 Mini High</option>
+        //       <option value="deepseek/deepseek-chat:free">Deepseek V3</option>
+        //   </select>
+        // </div>
+        // <div id="apiKey" class="tabcontent">
+        //         <input id="api-key" type="password" placeholder="Enter Key"></input>
+        //         <button class="save-key">Save</button>
+        //     </div>
+
         this.container.getElement().append(chatContainer);
-        
+
         // Initialize elements
         this.messagesEl = chatContainer.querySelector('.chat-messages');
         this.inputEl = chatContainer.querySelector('.chat-input');
@@ -44,7 +67,10 @@ class AssistantChat {
         this.modelSelect = chatContainer.querySelector('.model-select');
         this.apiKeyInput = chatContainer.querySelector("#api-key");
         this.saveKeyBtn = chatContainer.querySelector(".save-key");
-        
+        this.tabLinks = chatContainer.querySelectorAll('.tablinks'); // Get tab links
+        this.tabContent = chatContainer.querySelectorAll('.tabcontent'); // Get tab content
+
+
         // Add event listeners
         this.inputEl.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -55,6 +81,67 @@ class AssistantChat {
 
         this.saveKeyBtn.addEventListener('click', () => this.saveAPIKey());
         this.sendBtn.addEventListener('click', () => this.sendMessage());
+
+        // Add event listeners to tab links
+        this.tabLinks.forEach(tabLink => {
+            tabLink.addEventListener('click', (event) => this.openComponent(event, tabLink.dataset.component));
+        });
+
+        // Add change event listener for model select to save selection
+        this.modelSelect.addEventListener('change', () => {
+            localStorage.setItem('selectedModel', this.modelSelect.value);
+        });
+
+        // Show the first tab by default
+        this.openComponent(null, 'chooseModel');
+    }
+
+    loadStoredValues() {
+        // Load stored API key
+        const storedApiKey = localStorage.getItem('openRouterApiKey');
+        if (storedApiKey) {
+            this.apiKeyInput.value = storedApiKey;
+        }
+
+        // Load stored model selection
+        const storedModel = localStorage.getItem('selectedModel');
+        if (storedModel) {
+            this.modelSelect.value = storedModel;
+        } else {
+            // Set default value if nothing stored (first option)
+            this.modelSelect.value = this.modelSelect.options[0].value;
+            localStorage.setItem('selectedModel', this.modelSelect.value);
+        }
+    }
+
+    openComponent(evt, component) {
+        // Hide all tab content
+        this.tabContent.forEach(content => {
+            content.style.display = 'none';
+        });
+
+        // Deactivate all tab links
+        this.tabLinks.forEach(link => {
+            link.classList.remove('active');
+        });
+
+        // Show the current tab
+        const tabContent = document.querySelector(`#${component}`);
+        if (tabContent) {
+            tabContent.style.display = 'block';
+        }
+
+        // Activate the current tab link
+        if (evt) {
+            evt.currentTarget.classList.add('active');
+        } else {
+            // If no event, find the tab link with the matching data-component and activate it
+            this.tabLinks.forEach(link => {
+                if (link.dataset.component === component) {
+                    link.classList.add('active');
+                }
+            });
+        }
     }
 
     saveAPIKey() {
@@ -72,7 +159,6 @@ class AssistantChat {
         this.inputEl.value = '';
 
         // Get current editor content
-        // TODO: getValue() is saying it does not exist (does this function exist)
         const sourceCode = window.sourceEditor.getValue();
         const language = window.$selectLanguage.find(':selected').text();
         const stdout = window.stdout.getValue();
@@ -105,10 +191,10 @@ class AssistantChat {
         messageEl.innerHTML = `
             <div class="message-content">${this.formatMessage(content)}</div>
         `;
-        
+
         this.messagesEl.appendChild(messageEl);
         this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
-        
+
         // Store message history
         this.messages.push({ role, content });
     }
@@ -124,9 +210,9 @@ class AssistantChat {
     }
 
     async callAIAPI(data) {
-        // TODO: Add that the AI has access to code: {code}, input {input pulled from ...}, output {blah blah}, and user message
-
-        // TODO: ADD bug fix recommendation feature (ie if output produces an error advise developer how to fix the code to work accordingly)
+        // TODO: 2. ADD bug fix recommendation feature (ie if output produces an error advise developer how to fix the code to work accordingly)
+        // TODO: 3. add color styling feature to show user code changes
+        // TODO: 4. Demo video, post, and submission
         const systemMessage = {
             role: "system",
             content: `You are a helpful programming assistant and teacher. You have access to the following ${data.language} code:
@@ -147,6 +233,8 @@ class AssistantChat {
             - Format inline code with single backticks
             
             Your responses should be friendly and helpful.
+
+            If there are errors in the output, provide step-by-step fix for user.
             `
         };
 
@@ -156,18 +244,22 @@ class AssistantChat {
         ];
 
         try {
-            fetch('https://openrouter.ai/api/v1/chat/completions', {
+            const response = fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
                 headers: {
-                  Authorization: `Bearer ${this.apiKeyInput}`,
-                  'Content-Type': 'application/json',
+                    Authorization: `Bearer ${this.apiKeyInput}`,
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                  model: data.modelSelect,
-                  messages: messages,
+                    model: data.modelSelect,
+                    messages: messages,
                 }),
-              });
-            
+            });
+
+            const completion = (await response).json()
+            if(!completion.choices || completion.choices.length === 0) {
+                throw new Error("No choices in API response")
+            }
 
             return completion.choices[0].message.content;
         } catch (error) {
@@ -175,6 +267,4 @@ class AssistantChat {
             throw error;
         }
     }
-} 
-
-export {AssistantChat}
+}

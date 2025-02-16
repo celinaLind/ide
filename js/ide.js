@@ -4,8 +4,8 @@ import { AssistantChat } from "./assistant.js";
 
 const AUTH_HEADERS = API_KEY
   ? {
-      Authorization: `Bearer ${API_KEY}`,
-    }
+    Authorization: `Bearer ${API_KEY}`,
+  }
   : {};
 
 const CE = "CE";
@@ -69,15 +69,15 @@ var layoutConfig = {
           },
         },
         {
-            type: "component",
-            width: 40,
-            componentName: "assistant",
-            id: "assistant",
-            title: "AI Assistant",
-            isClosable: false,
-            componentState: {
-              readOnly: false,
-            },
+          type: "component",
+          width: 40,
+          componentName: "assistant",
+          id: "assistant",
+          title: "AI Assistant",
+          isClosable: false,
+          componentState: {
+            readOnly: false,
+          },
         },
         {
           type: "column",
@@ -132,9 +132,9 @@ function showError(title, content) {
   let reportTitle = encodeURIComponent(`Error on ${window.location.href}`);
   let reportBody = encodeURIComponent(
     `**Error Title**: ${title}\n` +
-      `**Error Timestamp**: \`${new Date()}\`\n` +
-      `**Origin**: ${window.location.href}\n` +
-      `**Description**:\n${content}`
+    `**Error Timestamp**: \`${new Date()}\`\n` +
+    `**Origin**: ${window.location.href}\n` +
+    `**Description**:\n${content}`
   );
 
   $("#report-problem-btn").attr(
@@ -671,6 +671,10 @@ document.addEventListener("DOMContentLoaded", async function () {
           console.log("Assistant module loaded:", module);
           try {
             new module.AssistantChat(container);
+            window.sourceEditor = sourceEditor;
+            window.$selectLanguage = $selectLanguage;
+            window.stdout = stdoutEditor;
+            window.stdin = stdinEditor;
           } catch (error) {
             console.error("Error initializing AssistantChat:", error);
             container.getElement().html("Error loading chat component");

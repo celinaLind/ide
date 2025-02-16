@@ -1,7 +1,91 @@
+/* Style the tab */
+.tab {
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+  }
+  
+  /* Style the buttons that are used to open the tab content */
+  .tab button {
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+  }
+  
+  /* Change background color of buttons on hover */
+  .tab button:hover {
+    background-color: #ddd;
+  }
+  
+  /* Create an active/current tablink class */
+  .tab button.active {
+    background-color: #ccc;
+  }
+  
+  /* Style the tab content */
+  .tabcontent {
+    display: none;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
+  }
+
+.assistant-components {
+    padding: 10px;
+    border: 1px solid #ced4da;
+}
+
 .choose-model {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
+    margin-bottom: 10px;
 }
+
+.choose-model p {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.choose-model select {
+    padding: 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.api-key {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.api-key input[type="password"] {
+    padding: 8px;
+    font-size: 14px;
+    width: 100%;
+}
+
+.api-key button.save-key {
+    padding: 0 8px;
+    background-color: #404448;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.3s ease;
+}
+
+.api-key button.save-key:hover {
+    background-color: #2a2d2f;
+}
+
 .assistant-chat {
     display: flex;
     flex-direction: column;
