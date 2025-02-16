@@ -200,13 +200,33 @@ export class AssistantChat {
     }
 
     formatMessage(content) {
-        // Basic markdown-like formatting
-        return content
+        // First handle code blocks to prevent interference with other formatting
+        content = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
+            return `<div class="code-block-wrapper">
+                ${language ? `<div class="code-language">${language}</div>` : ''}
+                <pre><code class="${language || ''}">${code.trim()}</code></pre>
+            </div>`;
+        });
+
+        // Handle headers
+        content = content.replace(/#{1,6} (.+)/g, (match, text) => {
+            const level = match.trim().split(' ')[0].length;
+            return `<h${level} class="chat-heading">${text}</h${level}>`;
+        });
+
+        // Handle other markdown elements
+        content = content
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-            .replace(/`([^`]+)`/g, '<code>$1</code>')
+            .replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>')
+            // Convert bullet points
+            .replace(/^- (.+)/gm, '<li>$1</li>')
+            // Wrap bullet points in ul
+            .replace(/(<li>.*<\/li>)\n/g, '<ul>$1</ul>')
+            // Handle line breaks
             .replace(/\n/g, '<br>');
+
+        return content;
     }
 
     async callAIAPI(data) {
@@ -243,20 +263,33 @@ export class AssistantChat {
             ...data.messages
         ];
 
+        const apiKey = localStorage.getItem('openRouterApiKey');
         try {
-            const response = fetch('https://openrouter.ai/api/v1/chat/completions', {
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
                 headers: {
-                    Authorization: `Bearer ${this.apiKeyInput}`,
+                    Authorization: `Bearer ${apiKey}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    model: data.modelSelect,
+                    model: 'deepseek/deepseek-chat:free',
                     messages: messages,
                 }),
             });
 
-            const completion = (await response).json()
+            if (!response.ok) {
+                console.error("API ERROR:", response)
+                // try {
+                //   const errorBody = await response.text();
+                // console.error('API error response:', errorBody);
+                // throw new Error(`API call failed with status ${response.status}: ${errorBody.message || 'No error message'}`);
+              
+                // } catch (e) {
+                //     throw new Error(`API cll failed with status ${response.status}. Could not parse error body.`)
+                // }
+                }
+            console.log("Response:", response)
+            const completion = await response.json()
             if(!completion.choices || completion.choices.length === 0) {
                 throw new Error("No choices in API response")
             }
