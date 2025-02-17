@@ -36,7 +36,8 @@
 
 .assistant-components {
     padding: 10px;
-    border: 1px solid #ced4da;
+    border-bottom: 1px solid #ced4da;
+    background: #fff;
 }
 
 .choose-model {
@@ -110,7 +111,7 @@
     background: #007bff;
     color: white;
     margin-left: auto;
-    max-width: 85%;
+    max-width: 100%;
     padding: 12px;
 }
 
@@ -118,7 +119,7 @@
     background: white;
     border: 1px solid #dee2e6;
     margin-right: auto;
-    max-width: 85%;
+    max-width: 100%;
     padding: 12px;
 }
 
@@ -219,4 +220,105 @@
 
 .chat-message li {
     margin: 4px 0;
+}
+
+/* Add loading animation styles */
+.loading-dots {
+    display: inline-block;
+    position: relative;
+    height: 20px;
+    width: 50px;
+    margin: 10px;
+}
+
+.loading-dots div {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #007bff;
+    animation-timing-function: cubic-bezier(0, 1, 1, 0);
+}
+
+.loading-dots div:nth-child(1) {
+    left: 0;
+    animation: loading1 0.6s infinite;
+}
+
+.loading-dots div:nth-child(2) {
+    left: 16px;
+    animation: loading2 0.6s infinite;
+}
+
+.loading-dots div:nth-child(3) {
+    left: 32px;
+    animation: loading2 0.6s infinite;
+}
+
+.loading-dots div:nth-child(4) {
+    left: 48px;
+    animation: loading3 0.6s infinite;
+}
+
+@keyframes loading1 {
+    0% { transform: scale(0); }
+    100% { transform: scale(1); }
+}
+
+@keyframes loading2 {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(16px, 0); }
+}
+
+@keyframes loading3 {
+    0% { transform: scale(1); }
+    100% { transform: scale(0); }
+}
+
+.loading-message {
+    background: white;
+    border: 1px solid #dee2e6;
+    margin-right: auto;
+    max-width: 85%;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+}
+
+.assistant-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.assistant-title {
+    font-weight: bold;
+    color: #495057;
+}
+
+.settings-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    color: #6c757d;
+    transition: all 0.2s ease;
+}
+
+.settings-btn:hover {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.settings-btn.active {
+    background: #e9ecef;
+    color: #007bff;
+}
+
+.settings-btn i {
+    font-size: 1.2em;
 } 

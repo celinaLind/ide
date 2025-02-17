@@ -2,6 +2,7 @@ export class AssistantChat {
     constructor(container) {
         this.container = container;
         this.messages = [];
+        this.loadingMessage = null;
         this.initializeUI();
         this.loadStoredValues();
     }
@@ -11,23 +12,29 @@ export class AssistantChat {
         const chatContainer = document.createElement('div');
         chatContainer.className = 'assistant-chat';
         chatContainer.innerHTML = `
-            <div class="assistant-components">
-                 <div class="choose-model">
-                     <p><b>Choose Model:</b></p>
-                     <select class="model-select">
-                         <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                         <option value="gpt-4">GPT-4</option>
-                         <option value="claude-2">Claude 2</option>
-                         <option value="openai/o3-mini-high">Open AI: o3 Mini High</option>
-                         <option value="deepseek/deepseek-chat:free">Deepseek V3</option>
-                     </select>
-                 </div>
+            <div class="assistant-header">
+                <span class="assistant-title">AI Assistant</span>
+                <button class="settings-btn">
+                    <i class="cog icon"></i>
+                </button>
+            </div>
+            <div class="assistant-components" style="display: none;">
+                <div class="choose-model">
+                    <p><b>Choose Model:</b></p>
+                    <select class="model-select">
+                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                        <option value="gpt-4">GPT-4</option>
+                        <option value="claude-2">Claude 2</option>
+                        <option value="openai/o3-mini-high">Open AI: o3 Mini High</option>
+                        <option value="deepseek/deepseek-chat:free">Deepseek V3</option>
+                    </select>
+                </div>
                 <p><b>OpenRouter API Key:</b></p>
-                 <div class='api-key'>
-                     <input id="api-key" type="password" placeholder="Enter Key"></input>
-                     <button class="save-key">Save</button>
-                 </div>
-             </div>
+                <div class='api-key'>
+                    <input id="api-key" type="password" placeholder="Enter Key"></input>
+                    <button class="save-key">Save</button>
+                </div>
+            </div>
             <div class="chat-messages"></div>
             <div class="chat-input-container">
                 <textarea class="chat-input" placeholder="Ask me anything about your code..."></textarea>
@@ -70,6 +77,15 @@ export class AssistantChat {
         this.tabLinks = chatContainer.querySelectorAll('.tablinks'); // Get tab links
         this.tabContent = chatContainer.querySelectorAll('.tabcontent'); // Get tab content
 
+        // Add settings button handler
+        this.settingsBtn = chatContainer.querySelector('.settings-btn');
+        this.assistantComponents = chatContainer.querySelector('.assistant-components');
+        
+        this.settingsBtn.addEventListener('click', () => {
+            const isHidden = this.assistantComponents.style.display === 'none';
+            this.assistantComponents.style.display = isHidden ? 'block' : 'none';
+            this.settingsBtn.classList.toggle('active');
+        });
 
         // Add event listeners
         this.inputEl.addEventListener('keydown', (e) => {
@@ -150,9 +166,37 @@ export class AssistantChat {
         alert('API Key Saved!');
     }
 
+    showLoadingIndicator() {
+        // Create loading message element if it doesn't exist
+        const loadingEl = document.createElement('div');
+        loadingEl.className = 'chat-message loading-message';
+        loadingEl.innerHTML = `
+            <div class="loading-dots">
+                <div></div>
+                <div></div>
+                <div></div>
+                <div></div>
+            </div>
+        `;
+        this.messagesEl.appendChild(loadingEl);
+        this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
+        this.loadingMessage = loadingEl;
+    }
+
+    hideLoadingIndicator() {
+        if (this.loadingMessage) {
+            this.loadingMessage.remove();
+            this.loadingMessage = null;
+        }
+    }
+
     async sendMessage() {
         const message = this.inputEl.value.trim();
         if (!message) return;
+
+        // Hide settings if they're open
+        this.assistantComponents.style.display = 'none';
+        this.settingsBtn.classList.remove('active');
 
         // Clear input immediately
         this.inputEl.value = '';
@@ -165,6 +209,9 @@ export class AssistantChat {
 
         // Add user message immediately
         this.addMessageWithContent('user', message);
+        
+        // Show loading indicator
+        this.showLoadingIndicator();
 
         try {
             // Send API request
@@ -177,23 +224,36 @@ export class AssistantChat {
                 modelSelect: this.modelSelect.value
             });
 
-            // Process response and update UI concurrently
+            this.hideLoadingIndicator();
+
+            console.log('Response from API:', response);
+
+            if (!response || typeof response !== 'string') {
+                console.error('Invalid response type:', response);
+                throw new Error("Invalid response from API");
+            }
+
             const processedContent = this.formatMessage(response);
             const codeBlocks = this.extractCodeBlocks(response);
 
-            // Update message and diff editor concurrently
-            await Promise.all([
-                // Add AI response with pre-processed content
-                this.addMessageWithContent('assistant', processedContent),
-                // Update diff editor if code blocks exist
-                codeBlocks.length > 0 ? 
-                    window.updateDiffEditor(sourceCode, codeBlocks[0].code, language) : 
-                    Promise.resolve()
-            ]);
+            // Update message and handle comparison visibility
+            await this.addMessageWithContent('assistant', processedContent);
+
+            if (codeBlocks.length > 0) {
+                // Show comparison and update diff editor
+                window.showComparison();
+                window.updateDiffEditor(sourceCode, codeBlocks[0].code, language);
+            } else {
+                // Hide comparison if no code blocks
+                window.hideComparison();
+            }
 
         } catch (error) {
-            console.error('AI API error:', error);
-            this.addMessageWithContent('error', 'Sorry, there was an error processing your request.');
+            // Hide loading indicator on error
+            this.hideLoadingIndicator();
+            console.error('Message handling error:', error);
+            this.addMessageWithContent('error', `Error: ${error.message}`);
+            window.hideComparison();
         }
     }
 
@@ -270,7 +330,6 @@ export class AssistantChat {
             
             ${data.sourceCode}
             
-
             Inputs:
             ${data.stdin}
 
@@ -295,29 +354,35 @@ export class AssistantChat {
         ];
 
         const apiKey = localStorage.getItem('openRouterApiKey');
+        
         try {
             const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
                 headers: {
-                    Authorization: `Bearer ${apiKey}`,
+                    'Authorization': `Bearer ${apiKey}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     model: 'deepseek/deepseek-chat:free',
                     messages: messages,
+                    temperature: 0.7,
+                    max_tokens: 2000
                 }),
             });
 
             if (!response.ok) {
-                throw new Error("API ERROR status:", response.status, "Message:", response.message || 'No error Message')
-                }
-            console.log("Response:", response)
-            const completion = await response.json()
-            if(!completion.choices || completion.choices.length === 0) {
-                throw new Error("No choices in API response")
+                throw new Error(`API Error: ${response.status}`);
             }
 
-            return completion.choices[0].message.content;
+            const result = await response.json();
+            console.log('Raw API Response:', result);
+
+            if (!result.choices?.[0]?.message?.content) {
+                console.error('API Response Structure:', result);
+                throw new Error('No content in API response');
+            }
+
+            return result.choices[0].message.content;
         } catch (error) {
             console.error('API call failed:', error);
             throw error;

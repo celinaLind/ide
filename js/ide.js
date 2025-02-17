@@ -81,16 +81,6 @@ var layoutConfig = {
                 readOnly: false,
               },
             },
-            {
-              type: "component",
-              componentName: "diffEditor",
-              id: "diffEditor",
-              title: "Comparison",
-              isClosable: false,
-              componentState: {
-                readOnly: false
-              }
-            }
           ]
         },
         {
@@ -710,7 +700,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         readOnly: true,
         minimap: { enabled: false },
         automaticLayout: true,
-        theme: "vs-dark",
       });
 
       // Initialize with empty models
@@ -1018,3 +1007,28 @@ const EXTENSIONS_TABLE = {
 function getLanguageForExtension(extension) {
   return EXTENSIONS_TABLE[extension] || { flavor: CE, language_id: 43 }; // Plain Text (https://ce.judge0.com/languages/43)
 }
+
+// Add function to handle comparison visibility
+window.showComparison = function() {
+    const assistantColumn = layout.root.getItemsById('assistant')[0].parent;
+    
+    // Only add if comparison doesn't exist
+    if (!layout.root.getItemsById('diffEditor').length) {
+        assistantColumn.addChild({
+            type: 'component',
+            componentName: 'diffEditor',
+            id: 'diffEditor',
+            title: 'Comparison',
+            componentState: {
+                readOnly: true
+            }
+        });
+    }
+};
+
+window.hideComparison = function() {
+    const diffEditor = layout.root.getItemsById('diffEditor')[0];
+    if (diffEditor) {
+        diffEditor.remove();
+    }
+};
