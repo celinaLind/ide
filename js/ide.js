@@ -67,17 +67,31 @@ var layoutConfig = {
           componentState: {
             readOnly: false,
           },
-        },
-        {
-          type: "component",
+        }, {
+          type: "column",
           width: 40,
-          componentName: "assistant",
-          id: "assistant",
-          title: "AI Assistant",
-          isClosable: false,
-          componentState: {
-            readOnly: false,
-          },
+          content: [
+            {
+              type: "component",
+              componentName: "assistant",
+              id: "assistant",
+              title: "AI Assistant",
+              isClosable: false,
+              componentState: {
+                readOnly: false,
+              },
+            },
+            {
+              type: "component",
+              componentName: "diffEditor",
+              id: "diffEditor",
+              title: "Comparison",
+              isClosable: false,
+              componentState: {
+                readOnly: false
+              }
+            }
+          ]
         },
         {
           type: "column",
@@ -686,6 +700,30 @@ document.addEventListener("DOMContentLoaded", async function () {
         });
     });
 
+    layout.registerComponent("diffEditor", function (container, state) {
+      const diffContainer = $('<div class="code-block-content" style="height: 100%;"></div>');
+      container.getElement().append(diffContainer);
+
+      // Create the diffEditor
+      const diffEditor = monaco.editor.createDiffEditor(diffContainer[0], {
+        renderSideBySide: true,
+        readOnly: true,
+        minimap: { enabled: false },
+        automaticLayout: true,
+        theme: "vs-dark",
+      });
+
+      // Initialize with empty models
+      const emptyModel = monaco.editor.createModel('', 'plaintext');
+      diffEditor.setModel({
+        original: emptyModel,
+        modified: emptyModel
+      });
+
+      // Expose editor for later use
+      window.diffEditor = diffEditor;
+    });
+
     layout.on("initialised", function () {
       setDefaults();
       refreshLayoutSize();
@@ -897,6 +935,28 @@ const DEFAULT_STDIN =
 const DEFAULT_COMPILER_OPTIONS = "";
 const DEFAULT_CMD_ARGUMENTS = "";
 const DEFAULT_LANGUAGE_ID = 105; // C++ (GCC 14.1.0) (https://ce.judge0.com/languages/105)
+
+// Update the updateDiffEditor function
+window.updateDiffEditor = function(originalCode, modifiedCode, language) {
+  const languageMode = getEditorLanguageMode(language);
+  
+  // Dispose of old models if they exist
+  const oldModel = window.diffEditor.getModel();
+  if (oldModel) {
+    if (oldModel.original) oldModel.original.dispose();
+    if (oldModel.modified) oldModel.modified.dispose();
+  }
+
+  // Create new models
+  const originalModel = monaco.editor.createModel(originalCode, languageMode);
+  const modifiedModel = monaco.editor.createModel(modifiedCode, languageMode);
+
+  // Set new models
+  window.diffEditor.setModel({
+    original: originalModel,
+    modified: modifiedModel
+  });
+}
 
 function getEditorLanguageMode(languageName) {
   const DEFAULT_EDITOR_LANGUAGE_MODE = "plaintext";

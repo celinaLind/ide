@@ -154,20 +154,20 @@ export class AssistantChat {
         const message = this.inputEl.value.trim();
         if (!message) return;
 
-        // Add user message to chat
-        this.addMessage('user', message);
+        // Clear input immediately
         this.inputEl.value = '';
 
-        // Get current editor content
+        // Get current editor content once
         const sourceCode = window.sourceEditor.getValue();
         const language = window.$selectLanguage.find(':selected').text();
         const stdout = window.stdout.getValue();
         const stdin = window.stdin.getValue();
 
-        // save selected model to localStorage
-        localStorage.setItem('selectedModel', this.modelSelect.value)
+        // Add user message immediately
+        this.addMessageWithContent('user', message);
+
         try {
-            // Send to AI API
+            // Send API request
             const response = await this.callAIAPI({
                 messages: [...this.messages, { role: 'user', content: message }],
                 sourceCode,
@@ -177,56 +177,87 @@ export class AssistantChat {
                 modelSelect: this.modelSelect.value
             });
 
-            // Add AI response to chat
-            this.addMessage('assistant', response);
+            // Process response and update UI concurrently
+            const processedContent = this.formatMessage(response);
+            const codeBlocks = this.extractCodeBlocks(response);
+
+            // Update message and diff editor concurrently
+            await Promise.all([
+                // Add AI response with pre-processed content
+                this.addMessageWithContent('assistant', processedContent),
+                // Update diff editor if code blocks exist
+                codeBlocks.length > 0 ? 
+                    window.updateDiffEditor(sourceCode, codeBlocks[0].code, language) : 
+                    Promise.resolve()
+            ]);
+
         } catch (error) {
             console.error('AI API error:', error);
-            this.addMessage('error', 'Sorry, there was an error processing your request.');
+            this.addMessageWithContent('error', 'Sorry, there was an error processing your request.');
         }
     }
 
-    addMessage(role, content) {
+    // New method to add message with pre-processed content
+    addMessageWithContent(role, processedContent) {
         const messageEl = document.createElement('div');
         messageEl.className = `chat-message ${role}-message`;
         messageEl.innerHTML = `
-            <div class="message-content">${this.formatMessage(content)}</div>
+            <div class="message-content">${processedContent}</div>
         `;
 
         this.messagesEl.appendChild(messageEl);
         this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
 
-        // Store message history
-        this.messages.push({ role, content });
+        // Store original message content
+        this.messages.push({ role, content: processedContent });
     }
 
+    // Optimized code block extraction
+    extractCodeBlocks(content) {
+        const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+        const blocks = [];
+        let match;
+
+        while ((match = codeBlockRegex.exec(content)) !== null) {
+            // Only process if we find a code block
+            if (match[2]) {
+                blocks.push({
+                    language: match[1] || '',
+                    code: match[2].trim()
+                });
+                // Break after first code block since we only use the first one
+                break;
+            }
+        }
+
+        return blocks;
+    }
+
+    // Optimized message formatting
     formatMessage(content) {
-        // First handle code blocks to prevent interference with other formatting
-        content = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
-            return `<div class="code-block-wrapper">
-                ${language ? `<div class="code-language">${language}</div>` : ''}
-                <pre><code class="${language || ''}">${code.trim()}</code></pre>
-            </div>`;
-        });
-
-        // Handle headers
-        content = content.replace(/#{1,6} (.+)/g, (match, text) => {
-            const level = match.trim().split(' ')[0].length;
-            return `<h${level} class="chat-heading">${text}</h${level}>`;
-        });
-
-        // Handle other markdown elements
-        content = content
+        // Use a single pass through the content
+        const formattedContent = content
+            // Handle code blocks first
+            .replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => 
+                `<div class="code-block-wrapper">
+                    ${language ? `<div class="code-language">${language}</div>` : ''}
+                    <pre><code class="${language || ''}">${code.trim()}</code></pre>
+                </div>`
+            )
+            // Handle headers
+            .replace(/#{1,6} (.+)/g, (match, text) => {
+                const level = match.trim().split(' ')[0].length;
+                return `<h${level} class="chat-heading">${text}</h${level}>`;
+            })
+            // Handle all other markdown elements in one pass
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
             .replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>')
-            // Convert bullet points
             .replace(/^- (.+)/gm, '<li>$1</li>')
-            // Wrap bullet points in ul
             .replace(/(<li>.*<\/li>)\n/g, '<ul>$1</ul>')
-            // Handle line breaks
             .replace(/\n/g, '<br>');
 
-        return content;
+        return formattedContent;
     }
 
     async callAIAPI(data) {
@@ -278,15 +309,7 @@ export class AssistantChat {
             });
 
             if (!response.ok) {
-                console.error("API ERROR:", response)
-                // try {
-                //   const errorBody = await response.text();
-                // console.error('API error response:', errorBody);
-                // throw new Error(`API call failed with status ${response.status}: ${errorBody.message || 'No error message'}`);
-              
-                // } catch (e) {
-                //     throw new Error(`API cll failed with status ${response.status}. Could not parse error body.`)
-                // }
+                throw new Error("API ERROR status:", response.status, "Message:", response.message || 'No error Message')
                 }
             console.log("Response:", response)
             const completion = await response.json()
