@@ -1,6 +1,24 @@
 # Judge0 AI Addition IDE
 [Watch the Loom video](https://www.loom.com/embed/3c3575be11e144e9867491c5115a24b7?sid=b8114ca0-57ab-40fb-8657-383e3085188f)
 
+For this project, imagine you are an engineer at a startup looking to compete with LeetCode. You are tasked with building out AI features on top of the Judge0 IDE to enhance the user experience.
+
+### Getting Started:
+
+Clone the Judge0 IDE repo here
+Run the code locally with the command python3 -m http.server 8000
+Make edits to the relevant files to fulfill the requirements below
+Project Requirements:
+
+​Add a chat interface for users to ask questions and get answers - see 36:11 in the Project Walkthrough video posted above
+​If a user's code doesn't compile, use AI to suggest a fix
+​Let the user select a segment of code and chat with it inline - see 1:09:03 in the Project Walkthrough video posted above
+Challenges:
+
+Make a pull request on the Judge0 IDE repo
+Add autocomplete suggestions as the user is typing
+Ensure minimal latency in the AI responses
+Add a bug finder feature that can identify bugs in a user’s code
 
 # Judge0 IDE
 [![Judge0 IDE Screenshot](./.github/screenshot.png)](https://ide.judge0.com)
