@@ -1,3 +1,7 @@
+# Judge0 AI Addition IDE
+[Watch the Loom video](https://www.loom.com/embed/3c3575be11e144e9867491c5115a24b7?sid=b8114ca0-57ab-40fb-8657-383e3085188f)
+
+
 # Judge0 IDE
 [![Judge0 IDE Screenshot](./.github/screenshot.png)](https://ide.judge0.com)
 
